@@ -1,0 +1,44 @@
+####
+#
+#   Modifications Copyright© 2019 Advanced Micro Devices, Inc. All rights reserved.
+#
+####
+
+#-----------------------------------------------------------------------
+# Common CWPack Implementation Files
+#-----------------------------------------------------------------------
+
+vpath %.c $(CWPACK_DEPTH)/src
+
+CFILES += cwpack.c
+
+#-----------------------------------------------------------------------
+# Common CWPack Includes
+#-----------------------------------------------------------------------
+
+LCINCS   += -I$(CWPACK_DEPTH)/src
+LCXXINCS += -I$(CWPACK_DEPTH)/src
+
+#-----------------------------------------------------------------------
+# Common CWPack Build Options
+#-----------------------------------------------------------------------
+
+ifneq ($(filter lnx lnx64a, $(CWPACK_OS_BUILD)),)
+    LCOPTS += -fPIC
+endif
+
+#-----------------------------------------------------------------------
+# Common CWPack Defines
+#-----------------------------------------------------------------------
+
+LCDEFS += -DCOMPILE_FOR_LITTLE_ENDIAN=1
+
+ifneq ($(filter wNow wNxt, $(CWPACK_OS_BUILD)),)
+    ifneq ($(filter /Gr, $(LCXXOPTS)),)
+        LCDEFS += -DCWP_CALL=__fastcall
+    else
+        ifneq ($(filter /Gz, $(LCXXOPTS)),)
+            LCDEFS += -DCWP_CALL=__stdcall
+        endif
+    endif
+endif
