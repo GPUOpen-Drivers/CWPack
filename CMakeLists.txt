@@ -42,7 +42,7 @@ target_compile_definitions(cwpack PRIVATE COMPILE_FOR_${TARGET_ARCHITECTURE_ENDI
 
 if(WIN32)
     if(TARGET_ARCHITECTURE_BITS EQUAL 32)
-        target_compile_definitions(cwpack PRIVATE CWP_CALL=__fastcall)
+        target_compile_definitions(cwpack PUBLIC CWP_CALL=__fastcall)
     endif()
 endif()
 
