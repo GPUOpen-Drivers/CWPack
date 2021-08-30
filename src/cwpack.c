@@ -21,9 +21,10 @@
  */
 
 #include <string.h>
+#include <math.h>
 
 #include "cwpack.h"
-#include "cwpack_defines.h"
+#include "cwpack_internals.h"
 
 
 
@@ -78,6 +79,7 @@ int CWP_CALL cw_pack_context_init (cw_pack_context* pack_context, void* data, un
     pack_context->be_compatible = false;
     pack_context->err_no = 0;
     pack_context->handle_pack_overflow = hpo;
+    pack_context->handle_flush = NULL;
     pack_context->client_data = client_data;
     pack_context->return_code = test_byte_order();
     return pack_context->return_code;
@@ -86,6 +88,11 @@ int CWP_CALL cw_pack_context_init (cw_pack_context* pack_context, void* data, un
 void CWP_CALL cw_pack_set_compatibility (cw_pack_context* pack_context, bool be_compatible)
 {
     pack_context->be_compatible = be_compatible;
+}
+
+void CWP_CALL cw_pack_set_flush_handler (cw_pack_context* pack_context, pack_flush_handler handle_flush)
+{
+    pack_context->handle_flush = handle_flush;
 }
 
 
@@ -167,17 +174,6 @@ void CWP_CALL cw_pack_double(cw_pack_context* pack_context, double d)
 
     uint64_t tmp = *((uint64_t*)&d);
     tryMove8(0xcb,tmp);
-}
-
-
-void CWP_CALL cw_pack_real (cw_pack_context* pack_context, double d)
-{
-    float f = (float)d;
-    double df = f;
-    if (df == d)
-        cw_pack_float (pack_context, f);
-    else
-        cw_pack_double (pack_context, d);
 }
 
 
@@ -385,12 +381,68 @@ void CWP_CALL cw_pack_ext (cw_pack_context* pack_context, int8_t type, const voi
 }
 
 
+void CWP_CALL cw_pack_time (cw_pack_context* pack_context, int64_t sec, uint32_t nsec)
+{
+    if (pack_context->return_code)
+        return;
+
+    if (pack_context->be_compatible)
+        PACK_ERROR(CWP_RC_ILLEGAL_CALL);
+
+    if (nsec >= 1000000000)
+        PACK_ERROR(CWP_RC_VALUE_ERROR);
+
+    uint8_t *p;
+
+    if ((uint64_t)sec & 0xfffffffc00000000L) {
+        // timestamp 96
+        //serialize(0xc7, 12, -1, nsec, sec)
+        cw_pack_reserve_space(15);
+        *p++ = (uint8_t)0xc7;
+        *p++ = (uint8_t)12;
+        *p++ = (uint8_t)0xff;
+        cw_store32(nsec); p += 4;
+        cw_store64(sec);
+    }
+    else {
+        uint64_t data64 = (((uint64_t)nsec << 34) | (uint64_t)sec);
+        if (data64 & 0xffffffff00000000L) {
+            // timestamp 64
+            //serialize(0xd7, -1, data64)
+            cw_pack_reserve_space(10);
+            *p++ = (uint8_t)0xd7;
+            *p++ = (uint8_t)0xff;
+            cw_store64(data64);
+        }
+        else {
+            // timestamp 32
+            uint32_t data32 = (uint32_t)data64;
+            //serialize(0xd6, -1, data32)
+            cw_pack_reserve_space(6);
+            *p++ = (uint8_t)0xd6;
+            *p++ = (uint8_t)0xff;
+            cw_store32(data32);
+        }
+    }
+}
+
 void CWP_CALL cw_pack_insert (cw_pack_context* pack_context, const void* v, uint32_t l)
 {
     uint8_t *p;
     cw_pack_reserve_space(l);
     memcpy(p,v,l);
 }
+
+
+void CWP_CALL cw_pack_flush (cw_pack_context* pack_context)
+{
+    if (pack_context->return_code == CWP_RC_OK)
+        pack_context->return_code =
+            pack_context->handle_flush ?
+                pack_context->handle_flush(pack_context) :
+                CWP_RC_ILLEGAL_CALL;
+}
+
 
 /*******************************   U N P A C K   **********************************/
 
@@ -469,15 +521,29 @@ void CWP_CALL cw_unpack_next (cw_unpack_context* unpack_context)
                     cw_unpack_assert_blob(bin);
         case 0xc7:  getDDItem1(CWP_ITEM_EXT, ext.length, uint8_t);              // ext 8
                     cw_unpack_assert_space(1);
-                    unpack_context->item.type = *(int8_t*)p;
+                    unpack_context->item.type = (cwpack_item_types)*(int8_t*)p;
+                    if (unpack_context->item.type == CWP_ITEM_TIMESTAMP)
+                    {
+                        if (unpack_context->item.as.ext.length == 12)
+                        {
+                            cw_unpack_assert_space(4);
+                            cw_load32(p);
+                            unpack_context->item.as.time.tv_nsec = tmpu32;
+                            cw_unpack_assert_space(8);
+                            cw_load64(p,tmpu64);
+                            unpack_context->item.as.time.tv_sec = (int64_t)tmpu64;
+                            return;
+                        }
+                        UNPACK_ERROR(CWP_RC_WRONG_TIMESTAMP_LENGTH)
+                    }
                     cw_unpack_assert_blob(ext);
         case 0xc8:  getDDItem2(CWP_ITEM_EXT, ext.length, uint16_t);             // ext 16
                     cw_unpack_assert_space(1);
-                    unpack_context->item.type = *(int8_t*)p;
+                    unpack_context->item.type = (cwpack_item_types)*(int8_t*)p;
                     cw_unpack_assert_blob(ext);
         case 0xc9:  getDDItem4(CWP_ITEM_EXT, ext.length, uint32_t);             // ext 32
                     cw_unpack_assert_space(1);
-                    unpack_context->item.type = *(int8_t*)p;
+                    unpack_context->item.type = (cwpack_item_types)*(int8_t*)p;
                     cw_unpack_assert_blob(ext);
         case 0xca:  unpack_context->item.type = CWP_ITEM_FLOAT;                 // float
                     cw_unpack_assert_space(4);
@@ -500,7 +566,7 @@ void CWP_CALL cw_unpack_next (cw_unpack_context* unpack_context)
                     if (unpack_context->item.as.i64 >= 0)
                         unpack_context->item.type = CWP_ITEM_POSITIVE_INTEGER;
                     return;
-        case 0xd3:  getDDItem8(CWP_ITEM_NEGATIVE_INTEGER);						// signed int 64
+        case 0xd3:  getDDItem8(CWP_ITEM_NEGATIVE_INTEGER);                      // signed int 64
                     if (unpack_context->item.as.i64 >= 0)
                         unpack_context->item.type = CWP_ITEM_POSITIVE_INTEGER;
                     return;
@@ -527,8 +593,6 @@ void CWP_CALL cw_unpack_next (cw_unpack_context* unpack_context)
         default:
                     UNPACK_ERROR(CWP_RC_MALFORMED_INPUT)
     }
-
-    return;
 }
 
 #define cw_skip_bytes(n)                                \
@@ -672,7 +736,6 @@ void CWP_CALL cw_skip_items (cw_unpack_context* unpack_context, long item_count)
                 UNPACK_ERROR(CWP_RC_MALFORMED_INPUT)
         }
     }
-    return;
 }
 
 /* end cwpack.c */
