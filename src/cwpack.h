@@ -31,11 +31,9 @@ extern "C" {
 #include <stdbool.h>
 #include <time.h>
 
-
 #ifndef CWP_CALL
 #define CWP_CALL
 #endif
-
 
 /*******************************   Return Codes   *****************************/
 
@@ -56,6 +54,7 @@ extern "C" {
 
 
 /*******************************   P A C K   **********************************/
+
 
 struct cw_pack_context;
 
@@ -87,20 +86,20 @@ void CWP_CALL cw_pack_boolean (cw_pack_context* pack_context, bool b);
 
 void CWP_CALL cw_pack_signed (cw_pack_context* pack_context, int64_t i);
 void CWP_CALL cw_pack_unsigned (cw_pack_context* pack_context, uint64_t i);
-/* void CWP_CALL cw_pack_real (cw_pack_context* pack_context, double d);   moved to cwpack_utils */
 
 void CWP_CALL cw_pack_float (cw_pack_context* pack_context, float f);
 void CWP_CALL cw_pack_double (cw_pack_context* pack_context, double d);
-void CWP_CALL cw_pack_real (cw_pack_context* pack_context, double d);   /* Pack as float if precision isn't destroyed */
-void CWP_CALL cw_pack_time (cw_pack_context* pack_context, int64_t sec, uint32_t nsec);
+/* void cw_pack_real (cw_pack_context* pack_context, double d);   moved to cwpack_utils */
 
 void CWP_CALL cw_pack_array_size (cw_pack_context* pack_context, uint32_t n);
 void CWP_CALL cw_pack_map_size (cw_pack_context* pack_context, uint32_t n);
 void CWP_CALL cw_pack_str (cw_pack_context* pack_context, const char* v, uint32_t l);
 void CWP_CALL cw_pack_bin (cw_pack_context* pack_context, const void* v, uint32_t l);
 void CWP_CALL cw_pack_ext (cw_pack_context* pack_context, int8_t type, const void* v, uint32_t l);
+void CWP_CALL cw_pack_time (cw_pack_context* pack_context, int64_t sec, uint32_t nsec);
 
 void CWP_CALL cw_pack_insert (cw_pack_context* pack_context, const void* v, uint32_t l);
+
 
 /*****************************   U N P A C K   ********************************/
 

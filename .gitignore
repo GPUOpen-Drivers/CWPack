@@ -1,7 +1,6 @@
 # Finder ---------------------------
 .DS_Store
 
-
 # Explicit no GIT
 *.noGIT
 

@@ -32,7 +32,7 @@
 
 #ifdef FORCE_NO_LIBRARY
 
-static void CWP_CALL	*memcpy(void *dst, const void *src, size_t n)
+static void CWP_CALL *memcpy(void *dst, const void *src, size_t n)
 {
     unsigned int i;
     uint8_t *d=(uint8_t*)dst, *s=(uint8_t*)src;
@@ -426,6 +426,7 @@ void CWP_CALL cw_pack_time (cw_pack_context* pack_context, int64_t sec, uint32_t
     }
 }
 
+
 void CWP_CALL cw_pack_insert (cw_pack_context* pack_context, const void* v, uint32_t l)
 {
     uint8_t *p;
@@ -471,7 +472,6 @@ void CWP_CALL cw_unpack_next (cw_unpack_context* unpack_context)
     uint64_t    tmpu64;
     uint32_t    tmpu32;
     uint16_t    tmpu16;
-
     const uint8_t*  p;
 
 #define buffer_end_return_code  CWP_RC_END_OF_INPUT;
@@ -606,7 +606,6 @@ void CWP_CALL cw_skip_items (cw_unpack_context* unpack_context, long item_count)
 
     uint32_t    tmpu32;
     uint16_t    tmpu16;
-
     const uint8_t*  p;
 
     while (item_count-- > 0)
