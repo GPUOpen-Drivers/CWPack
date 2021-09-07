@@ -194,7 +194,7 @@ int main(int argc, const char * argv[])
 
 
 
-    cw_pack_context_init (&pack_ctx, outbuffer, 70000, 0);
+    cw_pack_context_init (&pack_ctx, outbuffer, 70000, 0, NULL);
     if (pack_ctx.return_code == CWP_RC_WRONG_BYTE_ORDER)
     {
         ERROR("***** Compiled for wrong byte order, test terminated *****\n\n");
@@ -337,7 +337,7 @@ int main(int argc, const char * argv[])
     unsigned long len = strlen(buffer)/2;                                               \
     for (ui = 0; ui < len; ui++)                                                        \
     inputbuf[ui] = (uint8_t)(char2hex(buffer[2*ui])<<4) + char2hex(buffer[2*ui +1]);    \
-    cw_unpack_context_init (&unpack_ctx, inputbuf, len+blob_length, 0);                 \
+    cw_unpack_context_init (&unpack_ctx, inputbuf, len+blob_length, 0, NULL);           \
     cw_unpack_next(&unpack_ctx);                                                       \
     if (unpack_ctx.item.type != CWP_ITEM_##etype)                                       \
         ERROR("In unpack, type error");                                                 \
@@ -453,7 +453,7 @@ int main(int argc, const char * argv[])
 
     //*******************   TEST skip   ***************************
 
-    cw_pack_context_init (&pack_ctx, outbuffer, 100, 0);
+    cw_pack_context_init (&pack_ctx, outbuffer, 100, 0, NULL);
     cw_pack_array_size(&pack_ctx,2);
     cw_pack_str(&pack_ctx,"Test of skip",12); //array component
     cw_pack_unsigned(&pack_ctx,0x68357); //array component
@@ -464,7 +464,7 @@ int main(int argc, const char * argv[])
     }
     else
     {
-        cw_unpack_context_init (&unpack_ctx, pack_ctx.start, (unsigned long)(pack_ctx.current-pack_ctx.start), 0);
+        cw_unpack_context_init (&unpack_ctx, pack_ctx.start, (unsigned long)(pack_ctx.current-pack_ctx.start), 0, NULL);
 
         cw_skip_items (&unpack_ctx, 1); /* skip whole array */
         check_unpack (0x952, CWP_RC_OK);
