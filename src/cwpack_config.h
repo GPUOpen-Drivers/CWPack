@@ -38,9 +38,13 @@
 /*
  * Some processors demand that 64 bit integer access is aligned.
  * In that case define FORCE_ALIGNMENT_64BIT
+ *
+ * armeabi-v7a does not support 64-bit unaligned accesses, but armv8 and x86 do
  */
 
-/* #define FORCE_ALIGNMENT_64BIT */
+#if defined(__ARM_ARCH_7__)
+#define FORCE_ALIGNMENT_64BIT
+#endif
 
 
 
