@@ -42,7 +42,7 @@
  * armeabi-v7a does not support 64-bit unaligned accesses, but armv8 and x86 do
  */
 
-#if defined(__ARM_ARCH_7__)
+#if defined(__arm__)
 #define FORCE_ALIGNMENT_64BIT
 #endif
 
